@@ -188,8 +188,6 @@ begin
 	begin
 		if clk'event and clk = '1' then
 			prev_phase <= phase_in;
-		else
-			prev_phase <= prev_phase;
 		end if;
 	end process;
 	
