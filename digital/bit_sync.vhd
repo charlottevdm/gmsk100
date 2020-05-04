@@ -61,12 +61,11 @@ begin
 				compute <= '1';
 			else
 				if done_buffer = '1' then
-					compute <= '1';
+					compute <= '0';
 				end if;
 			end if;
 		end if;
 	end process;
-	
 	
 	--handshake protocol
 	done <= done_buffer;
@@ -101,7 +100,7 @@ begin
 					else
 						if (loop_counter < max_counter) or (first_time = '1') then
 							freq_switched <= '1';
-							max_counter <= loop_counter;
+							max_counter <= loop_counter/2;
 							first_time <= '0';
 						end if;
 						loop_counter <= 0;

@@ -39,8 +39,8 @@ end OO_detector;
 
 architecture Behavioral of OO_detector is
 	signal 	prev_input : 		std_logic;
-	constant	max_word_length:	unsigned(3 downto 0) := to_unsigned(10,4);
-	signal	cycles_since:		unsigned(3 downto 0) := to_unsigned(0,4);
+	constant	max_word_length:	unsigned(3 downto 0) := to_unsigned(13,4);
+	signal	current_cycle:		unsigned(3 downto 0) := to_unsigned(0,4);
 	signal	detect_buffer:		std_logic;
 	
 begin
@@ -48,7 +48,7 @@ begin
 	detect <= detect_buffer;
 	process(clk) begin
 		if clk'event and clk = '1' then
-			if input = '0' and prev_input = '1' then
+			if input = '0' and prev_input = '0' then
 				detect_buffer <= '1';
 			else 
 				detect_buffer <= '0';
@@ -59,16 +59,16 @@ begin
 	--error detection
 	process(clk) begin
 		if clk'event and clk = '1' then
-			if cycles_since > max_word_length then
-				cycles_since <= to_unsigned(0,4);
-				error <= '1';
+			if detect_buffer = '1' or reset = '1' then
+				current_cycle <= to_unsigned(2,4);
 			else
-				error <= '0';
-				if detect_buffer = '1' or reset = '1' then
-					cycles_since <= to_unsigned(0,4);
+				if current_cycle > max_word_length then
+					current_cycle <= to_unsigned(0,4);
+					error <= '1';
 				else
-					cycles_since <= cycles_since + to_unsigned(1,4);
+					error <= '0';
 				end if;
+				current_cycle <= current_cycle + to_unsigned(1,4);
 			end if;
 		end if;
 	end process;
