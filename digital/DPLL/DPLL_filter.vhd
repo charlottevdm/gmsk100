@@ -34,22 +34,22 @@ entity DPLL_filter is
 	generic(
 		bits_input: integer := 8); 
 	Port( 
-		input : in  signed(bits_input - 1 downto 0); -- @ 100 kHz
+		input : in  signed(bits_input - 1 downto 0); -- @ 100 kHz 127 to -128
 		clk : in  STD_LOGIC;
 		output : out  unsigned(bits_input - 1 downto 0));
 end DPLL_filter;
 
 architecture Behavioral of DPLL_filter is
-	signal 	input_del1 : signed(bits_input - 1 downto 0);
-	signal 	input_del2 : signed(bits_input - 1 downto 0);
-	signal 	input_filtered : signed(bits_input - 1 downto 0);
-	signal 	input_filtered_extended : unsigned(bits_input downto 0);
+	signal 	input_del1 : signed(bits_input - 1 downto 0) := to_signed(0,bits_input);
+	signal 	input_del2 : signed(bits_input - 1 downto 0) := to_signed(0,bits_input);
+	signal 	input_filtered : signed(bits_input - 1 downto 0):= to_signed(0,bits_input);
+	signal 	input_filtered_extended : signed(bits_input downto 0):= to_signed(0,bits_input+1);
 	constant loop_amount : integer := 10000/50;
 	signal 	loop_counter : integer := 0;
 	signal 	clk_100: std_logic;
-	signal 	integrated_input : unsigned(bits_input downto 0) := to_unsigned(205,bits_input+1);
-	signal 	integrated_input_through : unsigned(bits_input downto 0) := to_unsigned(205,bits_input+1);
-	
+	signal 	integrated_input : signed(bits_input downto 0) := to_signed(205,bits_input+1); -- has to be one more than integrated_input_through
+	signal 	integrated_input_through : signed(bits_input downto 0) := to_signed(205,bits_input+1); -- has to include 255, so is 1 big extra in signed
+	signal 	integrated_input_through_less : signed(bits_input - 1 downto 0);
 begin
 	--enable signal at 100 kHz
 	process(clk)
@@ -91,23 +91,23 @@ begin
 	end process;
 	
 	--integration
-	input_filtered_extended <= '0' & unsigned(input_filtered);
-	output <= integrated_input_through(bits_input - 1 downto 0);
+	
 	process(clk)
 	begin
 		if clk'event and clk = '1' then
 			if clk_100 = '1' then
 				integrated_input <= input_filtered_extended + integrated_input_through;
-				if integrated_input(bits_input) = '1' then
-					integrated_input_through <= integrated_input;
-				else
+				if integrated_input_through(bits_input) = '1' then -- if result is negative, cant be so stay the same 
 					integrated_input_through <= integrated_input_through;
+				else
+					integrated_input_through <= integrated_input;
 				end if;
-			else
-				integrated_input <= integrated_input;
-				integrated_input_through <= integrated_input_through;
 			end if;
 		end if;
 	end process;
+	input_filtered_extended <= input_filtered(bits_input - 1) & input_filtered;
+	integrated_input_through_less <= integrated_input_through(bits_input - 1 downto 0);
+	output <= unsigned(integrated_input_through_less);
+
 end Behavioral;
 

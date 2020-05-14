@@ -29,8 +29,8 @@ architecture Behavioral of digitalPLL is
 		clk => clk, --input
       phase_difference => phase_difference, --output -- 2 complement form - positive if phase of waveform b is too large (larger than a)
       reset => reset, --input
-      waveform_a => input, --input
-      waveform_b => unsigned(result_PTA) --input
+      waveform_a => unsigned(result_PTA),--input
+      waveform_b => input --input
 	);
 
 	PIF0: entity work.DPLL_filter port map(
@@ -49,6 +49,16 @@ architecture Behavioral of digitalPLL is
 	   phase_in => result_PA, --input
       clk => clk, --input
       amp_out => result_PTA --output
+	);
+	
+	waveform_writer_0: entity work.waveform_writer generic map(
+	filename => "waveforms/output.txt",
+	samplerate => 100000,
+	bits => 8,
+	rows => 9000,
+	columns => 1
+	) port map(
+		data => phase_difference
 	);
 	
 end Behavioral;

@@ -25,26 +25,30 @@ architecture Behavioral of phase_detector is
 	--signal phase: unsigned(bits_output-1 downto 0) := to_unsigned(24, bits_output); -- 24° in binary, assuming the nb of input bits is 4 (360/15 = 24°)
 	signal result_xor: unsigned(bits_input-1 downto 0); 
 	
-	signal temp_a: unsigned(bits_input-1 downto 0);
-	signal temp_b: unsigned(bits_input-1 downto 0);
-	signal waveform_a_pre: unsigned(bits_input-1 downto 0);
-	signal waveform_b_pre: unsigned(bits_input-1 downto 0);
-	signal waveform_a_prepre: unsigned(bits_input-1 downto 0);
-	signal waveform_b_prepre: unsigned(bits_input-1 downto 0);
+	signal temp_a: unsigned(bits_input-1 downto 0):= to_unsigned(0,bits_input);
+	signal temp_b: unsigned(bits_input-1 downto 0):= to_unsigned(0,bits_input);
+	signal waveform_a_pre: unsigned(bits_input-1 downto 0):= to_unsigned(0,bits_input);
+	signal waveform_b_pre: unsigned(bits_input-1 downto 0):= to_unsigned(0,bits_input);
+	signal waveform_a_prepre: unsigned(bits_input-1 downto 0):= to_unsigned(0,bits_input);
+	signal waveform_b_prepre: unsigned(bits_input-1 downto 0):= to_unsigned(0,bits_input);
+	signal phase_difference_buffer : unsigned(bits_output-1 downto 0) := to_unsigned(0,bits_output);
 
-	signal dist: unsigned(bits_input-1 downto 0);
-	signal dist_prev: unsigned(bits_input-1 downto 0);
-	signal waveform_diff: unsigned(bits_input-1 downto 0);
-	signal waveform_diff_pre: unsigned(bits_input-1 downto 0);	
-	signal waveform_diff_prepre: unsigned(bits_input-1 downto 0);
-	signal dist_diff: unsigned(bits_input-1 downto 0);
+	signal dist: unsigned(bits_input-1 downto 0):= to_unsigned(0,bits_input);
+	signal dist_prev: unsigned(bits_input-1 downto 0):= to_unsigned(0,bits_input);
+	signal waveform_diff: unsigned(bits_input-1 downto 0):= to_unsigned(0,bits_input);
+	signal waveform_diff_pre: unsigned(bits_input-1 downto 0):= to_unsigned(0,bits_input);	
+	signal waveform_diff_prepre: unsigned(bits_input-1 downto 0):= to_unsigned(0,bits_input);
+	signal dist_diff: unsigned(bits_input-1 downto 0):= to_unsigned(0,bits_input);
 	signal sub: STD_LOGIC:= '1';
 	signal add: STD_LOGIC:= '0';
-	signal average: unsigned(bits_input-1 downto 0);
-	signal average_pre: unsigned(bits_input-1 downto 0);
-	signal final_average: unsigned(bits_input-1 downto 0);
-	signal mult: unsigned(bits_output-2 downto 0);
-
+	signal average: unsigned(bits_input-1 downto 0):= to_unsigned(0,bits_input);
+	signal average_pre: unsigned(bits_input-1 downto 0):= to_unsigned(0,bits_input);
+	signal mult: unsigned(bits_output-2 downto 0):= to_unsigned(0,bits_output-1);
+	
+	signal clk_100: std_logic;
+	constant loop_amount : integer := 10000/50;
+	signal 	loop_counter : integer := 0;
+	
 	component fourbit_subtractor is
 		Port ( clk : in STD_LOGIC;
 	        reset : in STD_LOGIC;
@@ -56,7 +60,20 @@ architecture Behavioral of phase_detector is
 	end component;
 		
 	begin
-
+		--enable signal at 100 kHz
+		process(clk)
+		begin
+			if clk'event and clk = '1' then
+				if loop_counter = loop_amount then
+					clk_100 <= '1';
+					loop_counter <= 0;
+				else
+					loop_counter <= loop_counter + 1;
+					clk_100 <= '0';
+				end if;
+			end if;
+		end process;
+	
 		process(waveform_a)
 		begin
 			if waveform_a'event then
@@ -160,10 +177,10 @@ architecture Behavioral of phase_detector is
 				average, -- the average is equal to the average of (the current waveform difference and the average of the two previous waveform differences)
 				add
 			);
-			
-		process(clk)
+		phase_difference <= phase_difference_buffer;
+		process(clk_100)
 		begin
-			if (clk'event and clk = '1') then
+			if (clk_100'event and clk_100 = '1') then
 			
 				result_xor <= waveform_a xor waveform_b;
 				if average = "0001" then
@@ -175,19 +192,19 @@ architecture Behavioral of phase_detector is
 				end if;
 				
 				if (result_xor = "0000") then
-					phase_difference <= "00000000";
+					phase_difference_buffer <= "00000000";
 				else
 					if dist_diff(bits_input-1) = '0' then -- rising edge (dist > prev_dist)
 						if waveform_diff(bits_input-1) = '0' then -- waveform_a > waveform_b
-							phase_difference <= "0" & mult; -- positive
+							phase_difference_buffer <= "0" & mult; -- positive
 						elsif waveform_diff(bits_input-1) = '1' then -- waveform_a < waveform_b
-							phase_difference <= "1" & (not(mult)+1); -- negative
+							phase_difference_buffer <= "1" & (not(mult)+1); -- negative
 						end if;
 					else -- falling edge (dist < prev_dist)
 						if waveform_diff(bits_input-1) = '0' then -- waveform_a > waveform_b
-							phase_difference <= "1" & (not(mult)+1); -- negative
+							phase_difference_buffer <= "1" & (not(mult)+1); -- negative
 						elsif waveform_diff(bits_input-1) = '1' then -- waveform_a < waveform_b
-							phase_difference <= "0" & mult; -- positive
+							phase_difference_buffer <= "0" & mult; -- positive
 						end if;
 					end if;
 					
