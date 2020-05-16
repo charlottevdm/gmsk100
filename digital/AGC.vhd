@@ -1,32 +1,12 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date:    16:54:17 05/04/2020 
--- Design Name: 
--- Module Name:    AGC - Behavioral 
--- Project Name: 
--- Target Devices: 
--- Tool versions: 
--- Description: 
---
--- Dependencies: 
---
--- Revision: 
--- Revision 0.01 - File Created
--- Additional Comments: 
---
+-- Student: Mike Storms r0653464
+-- Goal: 	Logic to decide the gain level of the VGA, the gain level increases if
+--				no maximal values are sensed within 'amount_cycles' and decreases if 
+--				clipping is sensed
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
 use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx primitives in this code.
---library UNISIM;
 --use UNISIM.VComponents.all;
 
 entity AGC is
@@ -34,7 +14,7 @@ entity AGC is
 				bits_output : integer := 6);
 	
 	Port(input : 			in  	unsigned(3 downto 0);
-		  clk: 				in 	std_logic;
+		  clk: 				in 	std_logic; --100kHz 
 		  clipped_high:	in 	std_logic;
 		  clipped_low:		in 	std_logic;
 		  output: 			out 	unsigned(bits_output-1 downto 0));
@@ -44,14 +24,17 @@ architecture Behavioral of AGC is
 	signal amount_cycles : unsigned(bits_cycles-1 downto 0) := to_unsigned(20,bits_cycles);
 	signal current_cycle : unsigned(bits_cycles-1 downto 0) := to_unsigned(0,bits_cycles);
 	signal enhance : std_logic;
-	signal gain_level : unsigned(bits_output-1 downto 0) := to_unsigned(0,bits_output);
+	
+	signal gain_level: unsigned(bits_output-1 downto 0) := to_unsigned(0,bits_output);
+	signal gain_del1: unsigned(bits_output-1 downto 0) := to_unsigned(0,bits_output);
+	signal gain_del2: unsigned(bits_output-1 downto 0) := to_unsigned(0,bits_output);
 	
 begin
 	-- sense if gain needs to be larger
 	process(clk) begin
 		if clk'event and clk = '1' then
-			if input = to_unsigned(15,4) or input = to_unsigned(0,4) then
-				current_cycle <= to_unsigned(0,bits_cycles);
+			if input = to_unsigned(15,4) or input = to_unsigned(0,4) then --these are unsigned maximals values, can also be signed maximal values
+				current_cycle <= to_unsigned(0,bits_cycles);					  --not tested due ot FPGA difficulities
 				enhance <= '0';
 			else
 				if current_cycle = amount_cycles then
@@ -66,7 +49,6 @@ begin
 	end process;
 
 	-- gain adjustment
-	output <= gain_level;
 	process(clk) begin
 		if clk'event and clk = '1' then
 			if clipped_high = '1' or clipped_low = '1' then 
@@ -77,5 +59,15 @@ begin
 		end if;
 	end process;
 	
+	--filtering to reduce oscillations
+	process(clk) begin
+		if clk'event and clk = '1' then
+			--delay signals
+			gain_del1 <= gain_level;
+			gain_del2 <= gain_del1;
+			--FIR
+			output <= shift_right(unsigned(gain_level),1) + shift_right(unsigned(gain_del1),2) + shift_right(unsigned(gain_del2),2);
+		end if;
+	end process;
 end Behavioral;
 

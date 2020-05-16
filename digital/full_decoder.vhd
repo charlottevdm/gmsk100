@@ -1,32 +1,10 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date:    17:24:46 04/29/2020 
--- Design Name: 
--- Module Name:    full_decoder - Behavioral 
--- Project Name: 
--- Target Devices: 
--- Tool versions: 
--- Description: 
---
--- Dependencies: 
---
--- Revision: 
--- Revision 0.01 - File Created
--- Additional Comments: 
---
+-- Student: Mike Storms r0653464
+-- Goal: 	Full signal decoder
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
 use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx primitives in this code.
---library UNISIM;
 --use UNISIM.VComponents.all;
 
 entity full_decoder is
@@ -37,19 +15,20 @@ entity full_decoder is
 end full_decoder;
 
 architecture Behavioral of full_decoder is
-signal clk_output : std_logic;
-signal detect : std_logic;
-signal freq_switched : std_logic;
-signal error : std_logic;
-signal done : std_logic;
+	signal clk_output : std_logic;
+	signal detect : std_logic;
+	signal freq_switched : std_logic;
+	signal error : std_logic;
+	signal done : std_logic;
+	signal drive: std_logic;
 begin
-
+	drive <= start or error;
 	bit_sync0: entity work.bit_sync port map(
 		clk => clk,
 		input => input,
-		start => start,
+		start => drive,
 		output => clk_output,
-		done => done, -- needed?
+		done => done,
 		freq_switched => freq_switched
 	);
 	

@@ -1,33 +1,12 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date:    13:35:56 04/22/2020 
--- Design Name: 
--- Module Name:    bit_sync - Behavioral 
--- Project Name: 
--- Target Devices: 
--- Tool versions: 
--- Description: 
---
--- Dependencies: 
---
--- Revision: 
--- Revision 0.01 - File Created
--- Additional Comments: 
---
+-- Student: Mike Storms r0653464
+-- Goal: 	Create a clock signal on 100 Hz	
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
 use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx primitives in this code.
---library UNISIM;
 --use UNISIM.VComponents.all;
+
 
 entity bit_sync is
 	Port(input : 			in  	std_logic;
@@ -93,12 +72,12 @@ begin
 	process(clk) begin
 		if clk'event and clk = '1' then
 			if run_signal = '1' then
-				if prev_run_signal = run_signal then
+				if prev_run_signal = run_signal then --offset everything by 1 cycle, can be done more efficiently
 					if prev_input = input then
 						loop_counter <= loop_counter + 1;
 						freq_switched <= '0';
 					else
-						if (loop_counter < max_counter) or (first_time = '1') then
+						if ((loop_counter < max_counter) or (first_time = '1')) and (loop_counter > 100000) then
 							freq_switched <= '1';
 							max_counter <= loop_counter/2;
 							first_time <= '0';
@@ -137,4 +116,3 @@ begin
 	
 
 end Behavioral;
-
